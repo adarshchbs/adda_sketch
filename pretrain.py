@@ -8,18 +8,24 @@ from preprocess import preprocess_image
 
 def train_src( source_encoder, source_classifier, data_loader, gpu_flag = False ):
 
-    source_classifier.train()
-
-    optimizer = optim.Adam(
-                            list(source_classifier.parameters()),
+    # source_classifier.train()
+    # source_encoder.train()
+    
+    # for p in source_encoder.parameters():
+    #     p.requires_grad = False
+    
+    optimizer = optim.Adam(  list(source_classifier.parameters())
+                            + list(source_encoder.parameters()) ,
                             lr = params.c_learning_rate,
                             betas = ( params.beta1, params.beta2 )
                             )
+    
+ 
     
     criterion = nn.CrossEntropyLoss()
 
     for epoch in range( params.num_epochs_classifier ):
-
+    
         for step, ( images, labels ) in enumerate( data_loader.image_gen('train') ):
 
             images = preprocess_image( array = images,
@@ -33,9 +39,8 @@ def train_src( source_encoder, source_classifier, data_loader, gpu_flag = False 
 
 
             optimizer.zero_grad()
-            feature_encoded = source_encoder( images )
-            feature_encoded = feature_encoded.view(data_loader.batch_size,512)
-            preds = source_classifier( feature_encoded )
+            
+            preds = source_classifier( source_encoder( images ))
             loss = criterion( preds, labels )
 
             loss.backward()
@@ -45,11 +50,11 @@ def train_src( source_encoder, source_classifier, data_loader, gpu_flag = False 
             if ((step + 1) % params.log_step_pre == 0):
                 print("Epoch [{}/{}] Step [{}/{}]: loss={}"
                       .format(epoch + 1,
-                              params.num_epochs_pre,
+                              params.num_epochs_classifier,
                               step + 1,
                               int(data_loader.size['train']/data_loader.batch_size),
                               loss.data.item()))
-
+                # print(list(source_classifier.parameters()))
         # eval model on test set
         if ((epoch + 1) % params.eval_step_pre == 0):
             eval_src(source_encoder, source_classifier, data_loader)
@@ -60,55 +65,55 @@ def train_src( source_encoder, source_classifier, data_loader, gpu_flag = False 
             save_model(
                 source_classifier, "ADDA-source-classifier-{}.pt".format(epoch + 1))
 
-    source_encoder.train()
-    optimizer = optim.Adam(
-                            list(source_encoder.parameters()) + list(source_classifier.parameters()),
-                            lr = params.c_learning_rate,
-                            betas = ( params.beta1, params.beta2 )
-                            )
+    # source_encoder.train()
+    
+    # optimizer = optim.Adam(
+    #                         list(source_encoder.parameters()) + list(source_classifier.parameters()),
+    #                         lr = params.c_learning_rate,
+    #                         betas = ( params.beta1, params.beta2 )
+    #                         )
     
 
 
-    for epoch in range( params.num_epochs_encoder ):
+    # for epoch in range( params.num_epochs_encoder ):
 
-        for step, ( images, labels ) in enumerate( data_loader.image_gen('train') ):
+    #     for step, ( images, labels ) in enumerate( data_loader.image_gen('train') ):
 
-            images = preprocess_image( array = images,
-                                       split_type = 'train',
-                                       use_gpu = gpu_flag  )
+    #         images = preprocess_image( array = images,
+    #                                    split_type = 'train',
+    #                                    use_gpu = gpu_flag  )
 
-            labels = torch.tensor(labels,dtype=torch.long)
+    #         labels = torch.tensor(labels,dtype=torch.long)
 
-            if(gpu_flag == True):
-                labels = labels.cuda()
+    #         if(gpu_flag == True):
+    #             labels = labels.cuda()
 
 
-            optimizer.zero_grad()
+    #         optimizer.zero_grad()
+    #         preds = source_classifier( source_encoder( images ))
+    #         loss = criterion( preds, labels )
 
-            preds = source_classifier( source_encoder( images ) )
-            loss = criterion( preds, labels )
+    #         loss.backward()
+    #         optimizer.step()
 
-            loss.backward()
-            optimizer.step()
+    #         # print step info
+    #         if ((step + 1) % params.log_step_pre == 0):
+    #             print("Epoch [{}/{}] Step [{}/{}]: loss={}"
+    #                   .format(epoch + 1,
+    #                           params.num_epochs_encoder,
+    #                           step + 1,
+    #                           int(data_loader.size['train']/data_loader.batch_size),
+    #                           loss.data.item()))
 
-            # print step info
-            if ((step + 1) % params.log_step_pre == 0):
-                print("Epoch [{}/{}] Step [{}/{}]: loss={}"
-                      .format(epoch + 1,
-                              params.num_epochs_pre,
-                              step + 1,
-                              int(data_loader.size['train']/data_loader.batch_size),
-                              loss.data.item()))
+    #     # eval model on test set
+    #     if ((epoch + 1) % params.eval_step_pre == 0):
+    #         eval_src(source_encoder, source_classifier, data_loader)
 
-        # eval model on test set
-        if ((epoch + 1) % params.eval_step_pre == 0):
-            eval_src(source_encoder, source_classifier, data_loader)
-
-        # save model parameters
-        if ((epoch + 1) % params.save_step_pre == 0):
-            save_model(source_encoder, "ADDA-source-encoder-{}.pt".format(epoch + 1))
-            save_model(
-                source_classifier, "ADDA-source-classifier-{}.pt".format(epoch + 1))
+    #     # save model parameters
+    #     if ((epoch + 1) % params.save_step_pre == 0):
+    #         save_model(source_encoder, "ADDA-source-encoder-{}.pt".format(epoch + 1))
+    #         save_model(
+    #             source_classifier, "ADDA-source-classifier-{}.pt".format(epoch + 1))
 
 
     # # save final model
@@ -139,8 +144,8 @@ def eval_src( source_encoder, source_classifier, data_loader, gpu_flag = False )
         labels = torch.tensor(labels,dtype=torch.long)
 
         if(gpu_flag == True):
-            lables = lables.cuda()
-        preds = source_classifier( source_encoder( images ) )
+            labels = labels.cuda()
+        preds = source_classifier( source_encoder( images ))
         loss += criterion( preds, labels ).item()
 
         _, predicted = torch.max(preds.data,1)

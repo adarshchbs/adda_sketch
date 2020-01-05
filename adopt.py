@@ -16,6 +16,8 @@ def train_target(source_encoder, target_encoder, critic,
     critic.train()
     source_encoder.eval()
 
+    for p in source_encoder.parameters():
+        p.requires_grad = False
     criterion = nn.CrossEntropyLoss()
     optimizer_target = optim.Adam(target_encoder.parameters() ,
                                lr=params.c_learning_rate,
@@ -50,8 +52,8 @@ def train_target(source_encoder, target_encoder, critic,
 
             pred_concat = critic( concat_feature ) 
 
-            source_label = make_variable( torch.ones( source_feature.size(0) ).long() )
-            target_label = make_variable( torch.zeros( target_feature.size(0) ).long() )
+            source_label = torch.ones( source_feature.size(0) ).long().cuda()
+            target_label = torch.zeros( target_feature.size(0) ).long().cuda()
             concat_label = torch.cat( ( source_label, target_label ) )
 
             loss_critic = criterion( pred_concat, concat_label )
@@ -74,13 +76,14 @@ def train_target(source_encoder, target_encoder, critic,
 
             pred_target = critic( target_feature )
 
-            label_target = make_variable( torch.ones( pred_target.size(0) ).long() )
+            label_target = torch.ones( pred_target.size(0) ).long().cuda()
 
             loss_target = criterion( pred_target, label_target )
             loss_target.backward()
 
             optimizer_target.step()
 
+            
             if ((step + 1) % params.log_step == 0):
                 print("Epoch [{}/{}] Step [{}/{}]:"
                         "d_loss={:.5f} g_loss={:.5f} acc={:.5f}"
@@ -91,6 +94,8 @@ def train_target(source_encoder, target_encoder, critic,
                                 loss_critic.item(),
                                 loss_target.item(),
                                 correct/total))
+                print(target_encoder.state_dict()['encoder.7.1.conv2.weight'][0][0:5])
+                print("..........................")
     
         print( "critic accuracy after {} epochs is {}".format(epoch, correct/total) )
         print( "critic loss {}".format(total_loss/count_) )
@@ -112,5 +117,8 @@ def train_target(source_encoder, target_encoder, critic,
     torch.save(target_encoder.state_dict(), os.path.join(
         params.model_root,
         "ADDA-target-encoder-final.pt"))
+    print(".................here..........")
+    print(source_encoder.state_dict()['encoder.7.1.conv2.weight'][0][0:5])
+    print(target_encoder.state_dict()['encoder.7.1.conv2.weight'][0][0:5])
     return target_encoder
 

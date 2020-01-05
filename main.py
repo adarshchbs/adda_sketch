@@ -15,28 +15,32 @@ if __name__ == '__main__':
     # init random seed
     init_random_seed(params.manual_seed)
 
-    path_sketchy = '/home/iacv/project/adda_sketch/dataset/sketches/'
-    path_quickdraw = '/home/iacv/project/adda_sketch/dataset/QuickDraw_sketches_final/'
-    path_class_list = '/home/iacv/project/adda_sketch/common_class_list.txt'
+    path_sketchy = '/home/adarsh/project/adda_sketch/dataset/sketches/'
+    path_quickdraw = '/home/adarsh/project/adda_sketch/dataset/QuickDraw_sketches_final/'
+    path_class_list = '/home/adarsh/project/adda_sketch/common_class_list.txt'
     
     class_list = np.loadtxt(path_class_list,dtype='str')
     # load dataset
     source_loader = image_loader(parent_folder_path = path_sketchy,
                          folder_list= class_list,
                          split= [0.8,0.2,0] )
-    print(source_loader.size_total)
+    # print(source_loader.size_total)
     src_data_loader = source_loader.image_gen(split_type='train')
     src_data_loader_eval = source_loader.image_gen(split_type='val')
 
     target_loader = image_loader(parent_folder_path = path_quickdraw,
                                 folder_list = class_list,
-                                split = [0.05, 0.2, 0] )
+                                split = [0.03, 0.2, 0] )
     
 
     # tgt_data_loader = get_data_loader(params.tgt_dataset)
     # tgt_data_loader_eval = get_data_loader(params.tgt_dataset, train=False)
 
     # load models
+
+    
+
+
     src_encoder = init_model(net=ResNetEncoder(), restore = params.src_encoder_restore)
     src_classifier = init_model(net=ResNetClassifier(),
                                 restore=params.src_classifier_restore)
@@ -58,12 +62,17 @@ if __name__ == '__main__':
             params.src_model_trained):
         src_encoder, src_classifier = train_src( src_encoder,
                                                  src_classifier,
-                                                 source_loader)
+                                                 source_loader, gpu_flag = True)
 
     # eval source model
     # print("=== Evaluating classifier for source domain ===")
-    # eval_src(src_encoder, src_classifier, source_loader)
-
+    # eval_src(src_encoder, src_classifier, source_loader, gpu_flag = True)
+    print(".......before........")
+    print(src_encoder.state_dict()['encoder.7.1.conv2.weight'][0][0:5])
+    print(tgt_encoder.state_dict()['encoder.7.1.conv2.weight'][0][0:5]) 
+    a = ResNetEncoder()
+    print(a.state_dict()['encoder.7.1.conv2.weight'][0][0:5])
+       
     # train target encoder by GAN
     print("=== Training encoder for target domain ===")
     print(">>> Target Encoder <<<")
@@ -78,13 +87,16 @@ if __name__ == '__main__':
     if not (tgt_encoder.restored and critic.restored and
             params.tgt_model_trained):
         tgt_encoder = train_target(src_encoder, tgt_encoder, critic,
-                                source_loader, target_loader)
+                                source_loader, target_loader, gpu_flag = True)
+
+    print("after...........")
+    print(src_encoder.state_dict()['encoder.7.1.conv2.weight'][0][0:5])
 
     # eval target encoder on test set of target dataset
     print("=== Evaluating classifier for encoded target domain ===")
     print(">>> source only <<<")
-    eval_tgt(src_encoder, src_classifier, target_loader)
+    eval_tgt(src_encoder, src_classifier, target_loader, gpu_flag = True)
     print(">>> domain adaption <<<")
-    eval_tgt(tgt_encoder, src_classifier, target_loader)
+    eval_tgt(tgt_encoder, src_classifier, target_loader, gpu_flag = True)
 
 

@@ -7,7 +7,6 @@ from torchvision import models
 
 resnet = models.resnet18(pretrained=True)
 
-
 encoder = torch.nn.Sequential(*(list(resnet.children())[:-1]))
 
 class ResNetEncoder(nn.Module):
@@ -17,7 +16,8 @@ class ResNetEncoder(nn.Module):
         self.encoder = encoder
     
     def forward(self, inputs):
-        out = encoder(inputs)
+        out = self.encoder(inputs)
+        out = out.view(out.size()[0],out.size()[1])
         return out
 
 
@@ -27,10 +27,12 @@ class ResNetClassifier(nn.Module):
         self.fc2 = nn.Linear( in_features = 512, out_features = 87, bias= True )
 
     def forward(self, inputs):
-        out = F.relu(inputs)
-        out = self.fc2( out )
+        out = self.fc2( inputs )
         return out
 
+
+# a = ResNetEncoder()
+# print(a.state_dict()['encoder.7.1.conv2.weight'][0][0:6])
 
 # import numpy as np
 # from image_loader import image_loader
