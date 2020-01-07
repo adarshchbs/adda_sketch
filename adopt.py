@@ -94,8 +94,8 @@ def train_target(source_encoder, target_encoder, critic,
                                 loss_critic.item(),
                                 loss_target.item(),
                                 correct/total))
-                print(target_encoder.state_dict()['encoder.7.1.conv2.weight'][0][0:5])
-                print("..........................")
+                # print(target_encoder.state_dict()['encoder.7.1.conv2.weight'][0][0:5])
+                # print("..........................")
     
         print( "critic accuracy after {} epochs is {}".format(epoch, correct/total) )
         print( "critic loss {}".format(total_loss/count_) )
@@ -117,8 +117,6 @@ def train_target(source_encoder, target_encoder, critic,
     torch.save(target_encoder.state_dict(), os.path.join(
         params.model_root,
         "ADDA-target-encoder-final.pt"))
-    print(".................here..........")
-    print(source_encoder.state_dict()['encoder.7.1.conv2.weight'][0][0:5])
-    print(target_encoder.state_dict()['encoder.7.1.conv2.weight'][0][0:5])
+    
     return target_encoder
 

@@ -2,17 +2,12 @@ import torch
 from torch import nn
 import torch.nn.functional as F 
 
-from torchvision import models
 
-
-resnet = models.resnet18(pretrained=True)
-
-encoder = torch.nn.Sequential(*(list(resnet.children())[:-1]))
 
 class ResNetEncoder(nn.Module):
-    def __init__(self):
+    def __init__(self, encoder):
         super( ResNetEncoder, self ).__init__()
-        self.restored = False
+        # self.restored = False
         self.encoder = encoder
     
     def forward(self, inputs):
