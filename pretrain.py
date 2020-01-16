@@ -6,13 +6,10 @@ import params
 from utils import make_variable, save_model
 from preprocess import preprocess_image
 
-def train_src( source_encoder, source_classifier, data_loader, gpu_flag = False ):
+def train_src( source_encoder, source_classifier, data_loader, gpu_flag = False, gpu_name = 'cuda:0' ):
 
     # source_classifier.train()
     # source_encoder.train()
-    
-    # for p in source_encoder.parameters():
-    #     p.requires_grad = False
     
     optimizer = optim.Adam(  list(source_classifier.parameters())
                             + list(source_encoder.parameters()) ,
@@ -30,12 +27,12 @@ def train_src( source_encoder, source_classifier, data_loader, gpu_flag = False 
 
             images = preprocess_image( array = images,
                                        split_type = 'train',
-                                       use_gpu = gpu_flag  )
+                                       use_gpu = gpu_flag, gpu_name=gpu_name  )
 
             labels = torch.tensor(labels,dtype=torch.long)
 
             if(gpu_flag == True):
-                labels = labels.cuda()
+                labels = labels.cuda(gpu_name)
 
 
             optimizer.zero_grad()
@@ -57,7 +54,7 @@ def train_src( source_encoder, source_classifier, data_loader, gpu_flag = False 
                 # print(list(source_classifier.parameters()))
         # eval model on test set
         if ((epoch + 1) % params.eval_step_pre == 0):
-            eval_src(source_encoder, source_classifier, data_loader)
+            eval_src(source_encoder, source_classifier, data_loader, gpu_flag=True)
 
         # save model parameters
         if ((epoch + 1) % params.save_step_pre == 0):
@@ -65,55 +62,6 @@ def train_src( source_encoder, source_classifier, data_loader, gpu_flag = False 
             save_model(
                 source_classifier, "ADDA-source-classifier-{}.pt".format(epoch + 1))
 
-    # source_encoder.train()
-    
-    # optimizer = optim.Adam(
-    #                         list(source_encoder.parameters()) + list(source_classifier.parameters()),
-    #                         lr = params.c_learning_rate,
-    #                         betas = ( params.beta1, params.beta2 )
-    #                         )
-    
-
-
-    # for epoch in range( params.num_epochs_encoder ):
-
-    #     for step, ( images, labels ) in enumerate( data_loader.image_gen('train') ):
-
-    #         images = preprocess_image( array = images,
-    #                                    split_type = 'train',
-    #                                    use_gpu = gpu_flag  )
-
-    #         labels = torch.tensor(labels,dtype=torch.long)
-
-    #         if(gpu_flag == True):
-    #             labels = labels.cuda()
-
-
-    #         optimizer.zero_grad()
-    #         preds = source_classifier( source_encoder( images ))
-    #         loss = criterion( preds, labels )
-
-    #         loss.backward()
-    #         optimizer.step()
-
-    #         # print step info
-    #         if ((step + 1) % params.log_step_pre == 0):
-    #             print("Epoch [{}/{}] Step [{}/{}]: loss={}"
-    #                   .format(epoch + 1,
-    #                           params.num_epochs_encoder,
-    #                           step + 1,
-    #                           int(data_loader.size['train']/data_loader.batch_size),
-    #                           loss.data.item()))
-
-    #     # eval model on test set
-    #     if ((epoch + 1) % params.eval_step_pre == 0):
-    #         eval_src(source_encoder, source_classifier, data_loader)
-
-    #     # save model parameters
-    #     if ((epoch + 1) % params.save_step_pre == 0):
-    #         save_model(source_encoder, "ADDA-source-encoder-{}.pt".format(epoch + 1))
-    #         save_model(
-    #             source_classifier, "ADDA-source-classifier-{}.pt".format(epoch + 1))
 
 
     # # save final model
@@ -124,7 +72,7 @@ def train_src( source_encoder, source_classifier, data_loader, gpu_flag = False 
 
 
 
-def eval_src( source_encoder, source_classifier, data_loader, gpu_flag = False ):
+def eval_src( source_encoder, source_classifier, data_loader, gpu_flag = False, gpu_name = 'cuda:0' ):
 
     loss = 0
     accuracy = 0 
@@ -139,12 +87,12 @@ def eval_src( source_encoder, source_classifier, data_loader, gpu_flag = False )
     for (images, labels) in data_loader.image_gen(split_type='val'):
         images = preprocess_image( array = images,
                                        split_type = 'val',
-                                       use_gpu = gpu_flag  )
+                                       use_gpu = gpu_flag, gpu_name= gpu_name  )
 
         labels = torch.tensor(labels,dtype=torch.long)
 
         if(gpu_flag == True):
-            labels = labels.cuda()
+            labels = labels.cuda(gpu_name)
         preds = source_classifier( source_encoder( images ))
         loss += criterion( preds, labels ).item()
 

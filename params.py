@@ -22,26 +22,27 @@ tgt_model_trained = True
 
 # params for setting up models
 model_root = "snapshots"
-d_input_dims = 512
-d_hidden_dims = 500
+d_input_dims = 2018
+d_hidden_dims = 10
 d_output_dims = 2
 d_model_restore = "snapshots/ADDA-critic-final.pt"
 
 # params for training network
 num_gpu = 1
 num_epochs_pre = 3
-log_step_pre = 40
-eval_step_pre = 20
-save_step_pre = 100
-num_epochs = 2
-log_step = 10
-save_step = 100
+log_step_pre = 30
+eval_step_pre = 5
+save_step_pre = 5
+num_epochs = 10
+log_step = 30
+save_step = 1
+eval_step = 150
 manual_seed = None
-num_epochs_classifier = 15
+num_epochs_classifier = 20
 num_epochs_encoder = 1
 
 # params for optimizing models
 d_learning_rate = 1e-4
-c_learning_rate = 2e-6
+c_learning_rate = 1e-4
 beta1 = 0.5
 beta2 = 0.9

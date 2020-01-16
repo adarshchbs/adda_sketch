@@ -7,10 +7,11 @@ import numpy as np
 import params
 from utils import make_variable
 from preprocess import preprocess_image, preprocess_image_1
+from test import eval_tgt
 from itertools import count
 
-def train_target(source_encoder, target_encoder, critic,
-                 source_dataloader, target_dataloader, gpu_flag = False):
+def train_target(source_encoder, target_encoder, critic, source_classifier,
+                 source_dataloader, target_dataloader, gpu_flag = False, gpu_name = 'cuda:0'):
     
     target_encoder.train()
     critic.train()
@@ -38,11 +39,11 @@ def train_target(source_encoder, target_encoder, critic,
                    
             source_image = preprocess_image( array = source_image,
                                        split_type = 'train',
-                                       use_gpu = gpu_flag  )
+                                       use_gpu = gpu_flag, gpu_name= gpu_name  )
 
             target_image = preprocess_image_1( array = target_image,
                                        split_type = 'train',
-                                       use_gpu = gpu_flag  )
+                                       use_gpu = gpu_flag, gpu_name= gpu_name  )
 
             optimizer_critic.zero_grad()
             
@@ -52,8 +53,8 @@ def train_target(source_encoder, target_encoder, critic,
 
             pred_concat = critic( concat_feature ) 
 
-            source_label = torch.ones( source_feature.size(0) ).long().cuda()
-            target_label = torch.zeros( target_feature.size(0) ).long().cuda()
+            source_label = torch.ones( source_feature.size(0) ).long().cuda(gpu_name)
+            target_label = torch.zeros( target_feature.size(0) ).long().cuda(gpu_name)
             concat_label = torch.cat( ( source_label, target_label ) )
 
             loss_critic = criterion( pred_concat, concat_label )
@@ -76,7 +77,7 @@ def train_target(source_encoder, target_encoder, critic,
 
             pred_target = critic( target_feature )
 
-            label_target = torch.ones( pred_target.size(0) ).long().cuda()
+            label_target = torch.ones( pred_target.size(0) ).long().cuda(gpu_name)
 
             loss_target = criterion( pred_target, label_target )
             loss_target.backward()
@@ -96,20 +97,21 @@ def train_target(source_encoder, target_encoder, critic,
                                 correct/total))
                 # print(target_encoder.state_dict()['encoder.7.1.conv2.weight'][0][0:5])
                 # print("..........................")
-    
+
+            if ((step + 1) % params.eval_step == 0):
+            # torch.save(critic.state_dict(), os.path.join(
+            #     params.model_root,
+            #     "ADDA-critic-{}.pt".format(epoch + 1)))
+            # torch.save(target_encoder.state_dict(), os.path.join(
+            #     params.model_root,
+            #     "ADDA-target-encoder-{}.pt".format(epoch + 1)))
+                print(">>> domain adaption <<<")
+                eval_tgt(target_encoder, source_classifier, target_dataloader, gpu_flag = True, gpu_name= gpu_name)
+
+
         print( "critic accuracy after {} epochs is {}".format(epoch, correct/total) )
         print( "critic loss {}".format(total_loss/count_) )
         print(pred_cls)
-        #############################
-        # 2.4 save model parameters #
-        #############################
-        if ((epoch + 1) % params.save_step == 0):
-            torch.save(critic.state_dict(), os.path.join(
-                params.model_root,
-                "ADDA-critic-{}.pt".format(epoch + 1)))
-            torch.save(target_encoder.state_dict(), os.path.join(
-                params.model_root,
-                "ADDA-target-encoder-{}.pt".format(epoch + 1)))
 
     torch.save(critic.state_dict(), os.path.join(
         params.model_root,

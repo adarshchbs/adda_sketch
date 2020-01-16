@@ -15,8 +15,8 @@ from image_loader import image_loader
 from torchvision import models
 
 
-resnet = models.resnet18(pretrained=True)
-resnet1 = models.resnet18(pretrained=True)
+resnet = models.resnet50(pretrained=True)
+resnet1 = models.resnet50(pretrained=True)
 
 
 encoder = torch.nn.Sequential(*(list(resnet.children())[:-1]))
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     path_sketchy = '/home/adarsh/project/adda_sketch/dataset/sketches/'
     path_quickdraw = '/home/adarsh/project/adda_sketch/dataset/QuickDraw_sketches_final/'
     path_class_list = '/home/adarsh/project/adda_sketch/common_class_list.txt'
-    
+    gpu_name = 'cuda:1'
     
 
     class_list = np.loadtxt(path_class_list,dtype='str')
@@ -43,43 +43,25 @@ if __name__ == '__main__':
 
     target_loader = image_loader(parent_folder_path = path_quickdraw,
                                 folder_list = class_list,
-                                split = [0.05, 0.1, 0] )
+                                split = [0.8, 0.005, 0] )
     
 
-    # tgt_data_loader = get_data_loader(params.tgt_dataset)
-    # tgt_data_loader_eval = get_data_loader(params.tgt_dataset, train=False)
-
+    
     # load models
 
     src_encoder = ResNetEncoder(encoder)
-    src_encoder.cuda()
+    src_encoder.cuda(gpu_name)
     src_classifier = ResNetClassifier()
-    src_classifier.cuda()
+    src_classifier.cuda(gpu_name)
     tgt_encoder = ResNetEncoder(encoder1)
-    tgt_encoder.cuda()
+    tgt_encoder.cuda(gpu_name)
     critic = Discriminator(input_dim=params.d_input_dims,
                                       hidden_dim=params.d_hidden_dims,
                                       output_dim=params.d_output_dims)
-    critic.cuda()
+    critic.cuda(gpu_name)
 
-    # src_encoder = init_model(net=ResNetEncoder(), restore = params.src_encoder_restore)
-    # src_classifier = init_model(net=ResNetClassifier(),
-    #                             restore=params.src_classifier_restore)
-    # tgt_encoder = init_model(net=ResNetEncoder(),
-    #                          restore=params.tgt_encoder_restore)
-    # critic = init_model(Discriminator(input_dim=params.d_input_dims,
-    #                                   hidden_dim=params.d_hidden_dims,
-    #                                   output_dim=params.d_output_dims),
-    #                     restore=params.d_model_restore)
+    
 
-    # train source model
-    # print("=== Training classifier for source domain ===")
-    # print(">>> Source Encoder <<<")
-    # print(src_encoder)
-    # print(">>> Source Classifier <<<")
-    # print(src_classifier)
-    # print("=== Evaluating classifier for source domain with resnet weights ===")
-    # eval_src(src_encoder, src_classifier, source_loader, gpu_flag = True)
 
     if(os.path.exists(params.src_encoder_restore) and 
         os.path.exists(params.src_classifier_restore)):
@@ -88,31 +70,22 @@ if __name__ == '__main__':
 
     else:
         src_encoder, src_classifier = train_src( src_encoder,
-                                                 src_classifier,
-                                                 source_loader, gpu_flag = True)
+                                                src_classifier,
+                                                source_loader, gpu_flag = True, gpu_name = gpu_name)
 
 
 
-    # if not (src_encoder.restored and src_classifier.restored and
-    #         params.src_model_trained):
-    #     src_encoder, src_classifier = train_src( src_encoder,
-    #                                              src_classifier,
-    #                                              source_loader, gpu_flag = True)
+    
 
     # eval source model
     # print("=== Evaluating classifier for source domain ===")
-    # eval_src(src_encoder, src_classifier, source_loader, gpu_flag = True)
+    # eval_src(src_encoder, src_classifier, source_loader, gpu_flag = True, gpu_name = gpu_name)
     # print("=== Evaluating target encoder for source domain ===")
-    # eval_src(tgt_encoder, src_classifier, source_loader, gpu_flag = True)
+    # eval_src(tgt_encoder, src_classifier, source_loader, gpu_flag = True, gpu_name = gpu_name)
 
    
        
     # train target encoder by GAN
-    # print("=== Training encoder for target domain ===")
-    # print(">>> Target Encoder <<<")
-    # print(tgt_encoder)
-    # print(">>> Critic <<<")
-    # print(critic)
     tgt_encoder.load_state_dict(src_encoder.state_dict())
 
 
@@ -120,16 +93,16 @@ if __name__ == '__main__':
         tgt_encoder.load_state_dict(torch.load(params.tgt_encoder_restore))
 
     else:
-        tgt_encoder = train_target(src_encoder, tgt_encoder, critic,
-                                source_loader, target_loader, gpu_flag = True)
+        tgt_encoder = train_target(src_encoder, tgt_encoder, critic,src_classifier,
+                                source_loader, target_loader, gpu_flag = True, gpu_name = gpu_name)
 
 
     
     # eval target encoder on test set of target dataset
     print("=== Evaluating classifier for encoded target domain ===")
     print(">>> source only <<<")
-    eval_tgt(src_encoder, src_classifier, target_loader, gpu_flag = True)
+    eval_tgt(src_encoder, src_classifier, target_loader, gpu_flag = True, gpu_name=gpu_name)
     print(">>> domain adaption <<<")
-    eval_tgt(tgt_encoder, src_classifier, target_loader, gpu_flag = True)
+    eval_tgt(tgt_encoder, src_classifier, target_loader, gpu_flag = True, gpu_name= gpu_name)
 
 

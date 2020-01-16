@@ -71,7 +71,7 @@ class image_loader():
 
         return images, np.array(labels)
 
-    def image_gen( self, split_type = "train", batch_size = 128 ):
+    def image_gen( self, split_type = "train", batch_size = 32 ):
         self.batch_size = batch_size
         index = np.arange(len(self.dir_image_labels[split_type]))
 

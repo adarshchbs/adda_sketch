@@ -6,7 +6,7 @@ import torch.nn as nn
 from utils import make_variable
 from preprocess import preprocess_image_1
 
-def eval_tgt(encoder, classifier, data_loader, gpu_flag = False):
+def eval_tgt(encoder, classifier, data_loader, gpu_flag = False, gpu_name = 'cuda:0'):
     """Evaluation for target encoder by source classifier on target dataset."""
     # set eval state for Dropout and BN layers
     encoder.eval()
@@ -27,12 +27,12 @@ def eval_tgt(encoder, classifier, data_loader, gpu_flag = False):
 
         images = preprocess_image_1( array = images,
                                     split_type = 'val',
-                                    use_gpu = gpu_flag  )
+                                    use_gpu = gpu_flag, gpu_name= gpu_name  )
 
         labels = torch.tensor(labels,dtype=torch.long)
 
         if(gpu_flag == True):
-            labels = labels.cuda()
+            labels = labels.cuda(gpu_name)
 
         preds = classifier(encoder(images))
         loss += criterion(preds, labels).item()

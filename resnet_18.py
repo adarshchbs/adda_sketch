@@ -19,7 +19,7 @@ class ResNetEncoder(nn.Module):
 class ResNetClassifier(nn.Module):
     def __init__(self):
         super( ResNetClassifier, self ).__init__()
-        self.fc2 = nn.Linear( in_features = 512, out_features = 87, bias= True )
+        self.fc2 = nn.Linear( in_features = 2048, out_features = 87, bias= True )
 
     def forward(self, inputs):
         out = self.fc2( inputs )
